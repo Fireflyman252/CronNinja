@@ -16,7 +16,8 @@ aws cloudformation create-change-set \
   --stack-name $STACK_NAME \
   --change-set-name $CHANGE_SET_NAME \
   --template-body file://ec2-ollama.yaml \
-  --capabilities CAPABILITY_NAMED_IAM
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameters ParameterKey=KeyPairName,ParameterValue=CronNinjaKey
 
 echo "Change set created: $CHANGE_SET_NAME"
 echo "Review changes:"
