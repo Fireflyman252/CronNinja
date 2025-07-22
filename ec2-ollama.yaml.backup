@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EC2 Instance with Ollama pre-installed
+
+Parameters:
+  KeyPairName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access
+    Type: AWS::EC2::KeyPair::KeyName
+
+  LatestAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: /aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id
+
+
+Resources:
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH and HTTP
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 11434
+          ToPort: 11434
+          CidrIp: 0.0.0.0/0
+
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.large
+      ImageId: !Ref LatestAmiId  # Ubuntu 22.04 in us-east-1, update region if needed
+      KeyName: !Ref KeyPairName
+      SecurityGroups:
+        - !Ref MySecurityGroup
+      BlockDeviceMappings:
+      - DeviceName: /dev/sda1
+        Ebs:
+          VolumeSize: 20   # <-- This sets the root volume to 20 GB
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+
+          exec > /var/log/user-data.log 2>&1
+          set -x
+
+          # Install Docker
+          apt update
+          apt install -y docker.io
+
+          # Start Docker service
+          systemctl start docker
+          systemctl enable docker
+
+          aws s3 cp s3://cronninja-stack-templates/Dockerfile /home/ubuntu/Dockerfile
+          aws s3 cp s3://cronninja-stack-templates/app.py /home/ubuntu/app.py
+
+          cd /home/ubuntu
+
+          # Build and run
+          docker build -t ollama-app .
+          docker run -d -p 8000:8000 ollama-app
+
+          # Run Ollama container
+          # docker run -d \
+          #   --name ollama \
+          #   -p 11434:11434 \
+          #   -v ollama-data:/root/.ollama \
+          #   ollama/ollama
+
+          # (Optional) Pull a model
+          # sleep 5
+          # docker exec ollama ollama pull mistral
+
+          # Setup Loging:
+          # exec > /var/log/user-data.log 2>&1
+          # set -x
+          #
+          # apt update
+          # apt install -y curl
+          # curl -fsSL https://ollama.com/install.sh | sh
+          # # Start Ollama as a service
+          # # nohup ollama serve &
+          # ollama serve &
+          # echo "SLEEP 5"
+          # sleep 5
+          # export HOME=/root
+          # echo "pull mistral"
+          # ollama pull mistral
+          # # Optionally, install and run your API server here
+          # apt install -y python3-pip
+          # apt install python3.10-venv
+          #
+          # #Setup Virtual environment for pip so it isn't run as root
+          # python3 -m venv /home/ubuntu/venv
+          # source /home/ubuntu/venv/bin/activate
+          # pip install fastapi uvicorn requests
+          #
+          # cat > /home/ubuntu/app.py <<EOF
+          # from fastapi import FastAPI, Request
+          # import requests
+          # app = FastAPI()
+          # @app.post("/ask")
+          # async def ask(request: Request):
+          #     data = await request.json()
+          #     prompt = data.get("prompt")
+          #     response = requests.post(
+          #         "http://localhost:11434/api/generate",
+          #         json={"model": "mistral", "prompt": prompt, "stream": False}
+          #     )
+          #     return response.json()
+          # EOF
+          # nohup uvicorn app:app --host 0.0.0.0 --port 8000 &

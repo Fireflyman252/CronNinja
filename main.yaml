@@ -1,0 +1,32 @@
+
+
+Parameters:
+  KeyPairName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access
+    Type: AWS::EC2::KeyPair::KeyName
+
+
+Resources:
+
+  EC2Stack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/cronninja-stack-templates/ec2-ollama.yaml
+      Parameters:
+        KeyPairName: !Ref KeyPairName
+
+
+Outputs:
+  EC2InstancePublicIP:
+    Description: Public IP of the EC2 instance
+    Value: !GetAtt EC2Stack.Outputs.InstancePublicIP
+
+  # S3Stack:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: https://cronninja-stack-templates.s3.amazonaws.com/cloudformation/s3-frontend.yaml
+  #
+  # LambdaStack:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: https://cronninja-stack-templates.s3.amazonaws.com/cloudformation/lambda-api.yaml
