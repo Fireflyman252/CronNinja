@@ -10,26 +10,11 @@ unzip /tmp/awscliv2.zip -d /tmp
 /tmp/aws/install
 export PATH=$PATH:/usr/local/bin
 
-# Install Docker
-apt update
-apt install -y docker.io
+python3 -m venv venv
+source venv/bin/activate
 
-# Start Docker service
-systemctl start docker
-systemctl enable docker
+pip install fastapi uvicorn transformers torch
 
-cd /home/ubuntu
-
-# Build and run
-docker build -t ollama-docker .
-# docker run -d -p 8000:8000 ollama-app
-
-docker run -d \
-  --name ollama-app \
-  --restart always \
-  -p 8000:8000 \
-  -v ollama:/root/.ollama \
-  ollama-docker
-
+uvicorn app:app --host 0.0.0.0 --port 8000
 
 curl -X POST localhost:8000/ask -d '{"prompt":"hello"}' -H "Content-Type: application/json"

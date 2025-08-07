@@ -37,6 +37,7 @@ aws cloudformation create-stack \
   --parameters ParameterKey=KeyPairName,ParameterValue=CronNinjaKey \
   --capabilities CAPABILITY_NAMED_IAM
 
+# Get the IP address of EC2
 while true; do
 
   EC2_PUBLIC_IP=$(aws cloudformation describe-stacks \
@@ -53,8 +54,6 @@ while true; do
   sleep 10
 done
 
-scp -i ./CronNinjaKey.pem -o StrictHostKeyChecking=no ./Dockerfile ubuntu@${EC2_PUBLIC_IP}:/home/ubuntu/
-scp -i ./CronNinjaKey.pem -o StrictHostKeyChecking=no ./requirements.txt ubuntu@${EC2_PUBLIC_IP}:/home/ubuntu/
 scp -i ./CronNinjaKey.pem -o StrictHostKeyChecking=no ./app.py ubuntu@${EC2_PUBLIC_IP}:/home/ubuntu/
 scp -i ./CronNinjaKey.pem -o StrictHostKeyChecking=no ./ec2-init.sh ubuntu@${EC2_PUBLIC_IP}:/home/ubuntu/
 ssh -i ./CronNinjaKey.pem -o StrictHostKeyChecking=no ubuntu@"$EC2_PUBLIC_IP" "chmod +x ./ec2-init.sh && sudo ./ec2-init.sh"
